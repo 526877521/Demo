@@ -8,7 +8,6 @@ cc.Class({
             let msg = list[k];
             ObserverMgr.addEventListener(msg, this._onMsg, this);
         }
-        // ObserverMgr.addEventListener(GameMsgGlobal.Net.MsgErr, this._onErrorDeal, this);
     },
     onLoad() {
     },
