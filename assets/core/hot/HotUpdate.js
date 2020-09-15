@@ -3,8 +3,7 @@ let HotUpdateModule = require('HotUpdateModule');
 
 module.exports = {
     _assetsMgr: null,
-    _checkListener: null,
-    _updateListener: null,
+    _isUpdating: null,//是否正在热更中
     // --------------------------------检查更新--------------------------------
     _compareVersion(versionA, versionB) {
         console.log("客户端版本: " + versionA + ', 当前最新版本: ' + versionB);
@@ -16,15 +15,13 @@ module.exports = {
             let b = parseInt(vB[i] || 0);
             if (a === b) {
                 continue;
-            }
-            else {
+            } else {
                 return a - b;
             }
         }
         if (vB.length > vA.length) {
             return -1;
-        }
-        else {
+        } else {
             return 0;
         }
     },
@@ -33,30 +30,27 @@ module.exports = {
     },
     // 检查更新
     checkUpdate() {
-        if (!this._assetsMgr.getLocalManifest().isLoaded()) {
+        if (!this._assetsMgr.getLocalManifest() || !this._assetsMgr.getLocalManifest().isLoaded()) {
             console.log('加载本地 manifest 失败 ...');
             return;
         }
-        if (this._checkListener !== null) {
-            cc.eventManager.removeListener(this._checkListener);
-            this._checkListener = null;
+        if (this._isUpdating) {
+            return
         }
 
-        this._checkListener = new jsb.EventListenerAssetsManager(this._assetsMgr, this._checkCallBack.bind(this));
-        cc.eventManager.addListener(this._checkListener, 1);
         console.log("[HotUpdate] checkUpdate");
+        this._assetsMgr.setEventCallback(this._checkCallBack.bind(this));
         this._assetsMgr.checkUpdate();
     },
 
     _checkCallBack(event) {
         cc.log('热更新检查结果: ' + event.getEventCode());
-        let remoteManifest = this._assetsMgr.getRemoteManifest();
+        /*let remoteManifest = this._assetsMgr.getRemoteManifest();
         let v = remoteManifest.getSearchPaths();
         for (let k = 0; k < v.length; k++) {
             let item = v[k];
             console.log(JSON.stringify(v[k]));
-        }
-
+        }*/
         let code = event.getEventCode();
         switch (event.getEventCode()) {
             case jsb.EventAssetsManager.ERROR_NO_LOCAL_MANIFEST:
@@ -77,21 +71,19 @@ module.exports = {
             default:
                 return;
         }
-        if (this._checkListener !== null) {
-            cc.eventManager.removeListener(this._checkListener);
-            this._checkListener = null;
-        }
         ObserverMgr.dispatchMsg(HotUpdateModule.Msg.OnTipUpdateVersion, code);
     },
     // --------------------------------开始更新--------------------------------
     hotUpdate() {
-        if (this._assetsMgr) {
-            this._updateListener = new jsb.EventListenerAssetsManager(this._assetsMgr, this._hotUpdateCallBack.bind(this));
-            cc.eventManager.addListener(this._updateListener, 1);
+        console.log("开始热更", this._assetsMgr, this._isUpdating);
+        if (this._assetsMgr && !this._isUpdating) {
+            this._isUpdating = true;
+            this._assetsMgr.setEventCallback(this._hotUpdateCallBack.bind(this));
             this._assetsMgr.update();
         }
+        console.log("客户端开始热更");
     },
-    _hotUpdateCallBack: function (event) {
+    _hotUpdateCallBack(event) {
         console.log("hotUpdate Code: " + event.getEventCode());
         switch (event.getEventCode()) {
             case jsb.EventAssetsManager.ERROR_NO_LOCAL_MANIFEST:
@@ -138,7 +130,7 @@ module.exports = {
                 this._onUpdateFailed();
                 break;
             case jsb.EventAssetsManager.ERROR_DECOMPRESS:
-                console.log(event.getMessage());
+                console.log("hotUpdateCallBack", event.getMessage());
                 this._onUpdateFailed();
                 break;
             default:
@@ -147,21 +139,14 @@ module.exports = {
         }
     },
     _onUpdateFailed() {
-        if (this._updateListener !== null) {
-            cc.eventManager.removeListener(this._updateListener);
-            this._updateListener = null;
-        }
+
         ObserverMgr.dispatchMsg(HotUpdateModule.Msg.OnUpdateVersionResult, false);
     },
     // 更新完成
     _onUpdateFinished() {
-        if (this._updateListener !== null) {
-            cc.eventManager.removeListener(this._updateListener);
-            this._updateListener = null;
-        }
         let searchPaths = jsb.fileUtils.getSearchPaths();
         let newPaths = this._assetsMgr.getLocalManifest().getSearchPaths();
-        console.log(JSON.stringify(newPaths));
+        console.log("onUpdateFinished", JSON.stringify(newPaths));
         Array.prototype.unshift(searchPaths, newPaths);
         cc.sys.localStorage.setItem('HotUpdateSearchPaths', JSON.stringify(searchPaths));
 
@@ -170,7 +155,7 @@ module.exports = {
     },
 
     // 移除临时manifest文件
-    removeTmpManifestFile: function (storagePath) {
+    removeTmpManifestFile(storagePath) {
         // let tempStoragePath = storagePath + '_temp';// /
         //jsb.fileUtils.renameFile(this._storagePath+'/', this.TEMP_VERSION_FILENAME, this.VERSION_FILENAME);//
     },
@@ -204,18 +189,19 @@ module.exports = {
         }
     },
     // ------------------------------初始化------------------------------
-    init(manifestUrl) {
+    init(manifestProject) {
         if (!cc.sys.isNative) {
             return;
         }
-        let storagePath = ((jsb.fileUtils ? jsb.fileUtils.getWritablePath() : '/') + 'remote-asset');
+        let storagePath = (jsb.fileUtils ? jsb.fileUtils.getWritablePath() : '/') + 'remote-asset';
         console.log('热更新资源存放路径 : ' + storagePath);
-        console.log('本地 manifest 路径 : ' + manifestUrl);
-        // this.removeTempDir(storagePath);
-        this._assetsMgr = new jsb.AssetsManager(manifestUrl, storagePath);
-        if (!cc.sys.ENABLE_GC_FOR_NATIVE_OBJECTS) {
-            this._assetsMgr.retain();
-        }
+
+        this._assetsMgr = new jsb.AssetsManager("", storagePath, this._compareVersion.bind(this));
+
+        //加载manifest文件
+        let manifest = new jsb.Manifest(manifestProject, storagePath);
+        this._assetsMgr.loadLocalManifest(manifest, storagePath);
+
         console.log('[HotUpdate] local packageUrl:' + this._assetsMgr.getLocalManifest().getPackageUrl());
         console.log('[HotUpdate] project.manifest remote url:' + this._assetsMgr.getLocalManifest().getManifestFileUrl());
         console.log('[HotUpdate] version.manifest remote url:' + this._assetsMgr.getLocalManifest().getVersionFileUrl());
@@ -223,14 +209,16 @@ module.exports = {
         // 比较版本
         this._assetsMgr.setVersionCompareHandle(this._compareVersion.bind(this));
 
-        this._assetsMgr.setVerifyCallback(function (path, asset) {
+        this._assetsMgr.setVerifyCallback((path, asset) => {
             let compressed = asset.compressed;
             let expectedMD5 = asset.md5;
             let relativePath = asset.path;
             let size = asset.size;
             if (compressed) {
+                console.log("客户端热更Verification passed compress : " + relativePath);
                 return true;
             } else {
+                console.log(" 客户端热更 Verification passed : " + relativePath + " (" + expectedMD5);
                 return true;
             }
         });

@@ -1,31 +1,27 @@
-let HotUpdate = require("HotUpdate");
-let Observer = require("Observer");
-let Util = require("Util");
-let DialogMgr = require('DialogMgr');
-//let GameLocalStorage = require("GameLocalStorage");
-let HotUpdateModule = require('HotUpdateModule');
+const HotUpdate = require("HotUpdate");
+const Observer = require("Observer");
+const DialogMgr = require('DialogMgr');
+const HotUpdateModule = require('HotUpdateModule');
+const Tips = require('Tips');
 
 cc.Class({
     extends: Observer,
 
     properties: {
-        manifest: cc.Asset,
         versionLabel: {default: null, displayName: "版本号", type: cc.Label},
-
         updateProgress: {displayName: "热更新进度条", default: null, type: cc.ProgressBar},
         tipsLabel: {displayName: "消息提示", default: null, type: cc.Label},
-        addNode: {displayName: "添加节点", default: null, type: cc.Node},
     },
 
     _onMsg(msg, data) {
         if (msg === HotUpdateModule.Msg.OnUpdateVersionResult) {// 热更新结果
             if (data) {
                 this.tipsLabel.string = "更新成功";
-                Util.log("更新成功");
+                Tips.show("更新成功");
                 this._onShowDownLoadUpdateVersionResult(true);
             } else {
                 this.tipsLabel.string = "更新失败";
-                Util.log("热更新失败");
+                Tips.show("热更新失败");
                 this._onShowDownLoadUpdateVersionResult(false);
             }
         } else if (msg === HotUpdateModule.Msg.OnUpdateProgress) {// 热更新进度
@@ -38,7 +34,7 @@ cc.Class({
             if (data === jsb.EventAssetsManager.NEW_VERSION_FOUND) {
                 this._onShowNoticeUpdateLayer();
             } else if (data === jsb.EventAssetsManager.ALREADY_UP_TO_DATE) {// 版本一致,无需更新
-                Util.log("版本一致,无需更新,进入游戏中...");
+                Tips.show("版本一致,无需更新,进入游戏中...");
                 this._enterGame();
             } else {
                 this._onShowNoticeCheckVersionFailed();
@@ -77,13 +73,14 @@ cc.Class({
         }*/
     },
     _onShowNoticeUpdateLayer() {
-        Util.log("提示更新");
-        DialogMgr.showTipsWithOkBtn("检测到新版本,点击确定开始更新", function () {
+        Tips.show("提示更新");
+        DialogMgr.showTipsWithOkBtn("检测到新版本,点击确定按钮开始更新", () => {
+            console.log("点击确定键，进入到热更中");
             HotUpdate.hotUpdate();
-        }.bind(this));
+        });
     },
     _onShowNoticeCheckVersionFailed() {
-        Util.log('检查更新失败');
+        Tips.show("检查更新失败");
         DialogMgr.showTipsWithOkBtn("检查更新失败,点击重试", function () {
             HotUpdate.checkUpdate();
         }.bind(this));
@@ -104,21 +101,30 @@ cc.Class({
         this.tipsLabel.string = "";
         this.versionLabel.string = "";
         this.updateProgress.progress = 0;
-        this.addNode.destroyAllChildren();
     },
     // 检查更新
     _checkUpdate() {
         if (cc.sys.isNative) {
-            if (this.manifest) {
-                let str = "正在获取版本...";
-                this.tipsLabel.string = str;
-                Util.log(str);
-
-                HotUpdate.init(this.manifest);
+            let str = "正在获取版本...";
+            this.tipsLabel.string = str;
+            console.log(str);
+            // Tips.show(str);
+            cc.resources.load("manifest/project", (err, data) => {
+                if (err) {
+                    console.log("load project manifest fail", JSON.stringify(err));
+                    return;
+                }
+                try {
+                    let ass = JSON.parse(data._nativeAsset);
+                    console.log("热更版本文件： ver: " + ass.version + "  url:" + ass.packageUrl);
+                } catch (e) {
+                    console.log(e);
+                }
+                HotUpdate.init(data._nativeAsset);
                 HotUpdate.checkUpdate();
-            }
+            });
         } else {
-            Util.log("web 平台不需要热更新");
+            Tips.show("web 平台不需要热更新");
             this._enterGame();
         }
     },
@@ -126,11 +132,13 @@ cc.Class({
         this._checkUpdate();
     },
     _enterGame() {
-        Util.log("进入游戏成功");
+        Tips.show("进入游戏成功");
+        console.log("不需要热更新，直接进入到游戏");
         this.updateProgress.node.active = false;
+        DialogMgr.showTipsWithOkBtn("点击确定键，进入其他场景", () => {
+            console.log("点击确定键，进入其他场景");
+            cc.director.loadScene("HelloWorld");
+        });
 
-        cc.director.loadScene("HelloWorld");
-        // DialogMgr.showTipsWithOkBtn("更新成功", function () {
-        // }.bind(this));
     },
 });

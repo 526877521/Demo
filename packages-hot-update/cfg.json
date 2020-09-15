@@ -1,0 +1,14 @@
+{
+    "version": "1.0.3",
+    "serverRootDir": "http://192.168.85.105:8081/hot",
+    "resourceRootDir": "E:\\document\\cocosProject\\DemoProject\\Demo\\build\\jsb-default",
+    "genManifestDir": "",
+    "hotAddressArray": [
+        "http://192.168.85.105",
+        "http://192.168.85.105/hot",
+        "http://192.168.85.105:8081/hot"
+    ],
+    "buildTime": null,
+    "genTime": null,
+    "genVersion": null
+}
