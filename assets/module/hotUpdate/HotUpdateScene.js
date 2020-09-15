@@ -135,10 +135,11 @@ cc.Class({
         Tips.show("进入游戏成功");
         console.log("不需要热更新，直接进入到游戏");
         this.updateProgress.node.active = false;
-        DialogMgr.showTipsWithOkBtn("点击确定键，进入其他场景", () => {
-            console.log("点击确定键，进入其他场景");
-            cc.director.loadScene("HelloWorld");
-        });
+        cc.director.loadScene("HelloWorld");
+        // DialogMgr.showTipsWithOkBtn("点击确定键，进入其他场景", () => {
+        //     console.log("点击确定键，进入其他场景");
+        //     cc.director.loadScene("HelloWorld");
+        // });
 
     },
 });
