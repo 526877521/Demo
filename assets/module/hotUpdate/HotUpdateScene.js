@@ -9,7 +9,7 @@ cc.Class({
     extends: Observer,
 
     properties: {
-        manifest: cc.RawAsset,
+        manifest: cc.Asset,
         versionLabel: {default: null, displayName: "版本号", type: cc.Label},
 
         updateProgress: {displayName: "热更新进度条", default: null, type: cc.ProgressBar},

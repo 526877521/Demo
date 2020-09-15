@@ -35,7 +35,7 @@ module.exports = {
             //this._logView.node.runAction(action);
             let childrenLen = parent.children.length;
             this._logView.addLog(str);
-            this._logView.node.setLocalZOrder(childrenLen);
+            this._logView.node.zIndex = childrenLen;
         }
     }
 };
