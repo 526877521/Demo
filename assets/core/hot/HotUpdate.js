@@ -41,10 +41,11 @@ module.exports = {
         console.log("[HotUpdate] checkUpdate");
         this._assetsMgr.setEventCallback(this._checkCallBack.bind(this));
         this._assetsMgr.checkUpdate();
+        this._isUpdating = true;
     },
 
     _checkCallBack(event) {
-        cc.log('热更新检查结果: ' + event.getEventCode());
+        console.log('热更新检查结果: ' + event.getEventCode());
         /*let remoteManifest = this._assetsMgr.getRemoteManifest();
         let v = remoteManifest.getSearchPaths();
         for (let k = 0; k < v.length; k++) {
@@ -69,19 +70,22 @@ module.exports = {
                 console.log('发现新版本,请更新');
                 break;
             default:
+                console.log("checkCallBack code:", event.getEventCode());
                 return;
         }
+        this._assetsMgr.setEventCallback(null);
+        this._isUpdating = false;
         ObserverMgr.dispatchMsg(HotUpdateModule.Msg.OnTipUpdateVersion, code);
     },
     // --------------------------------开始更新--------------------------------
     hotUpdate() {
         console.log("开始热更", this._assetsMgr, this._isUpdating);
         if (this._assetsMgr && !this._isUpdating) {
-            this._isUpdating = true;
+            console.log("开始热更2222222222");
             this._assetsMgr.setEventCallback(this._hotUpdateCallBack.bind(this));
             this._assetsMgr.update();
+            this._isUpdating = true;
         }
-        console.log("客户端开始热更");
     },
     _hotUpdateCallBack(event) {
         console.log("hotUpdate Code: " + event.getEventCode());
@@ -135,15 +139,19 @@ module.exports = {
                 break;
             default:
                 //this._onUpdateFailed();
+                console.log("hotUpdateCallBack  default Code", event.getMessage());
                 break;
         }
     },
     _onUpdateFailed() {
-
+        this._assetsMgr.setEventCallback(null);
+        this._isUpdating = false;
         ObserverMgr.dispatchMsg(HotUpdateModule.Msg.OnUpdateVersionResult, false);
     },
     // 更新完成
     _onUpdateFinished() {
+        this._assetsMgr.setEventCallback(null);
+        this._isUpdating = false;
         let searchPaths = jsb.fileUtils.getSearchPaths();
         let newPaths = this._assetsMgr.getLocalManifest().getSearchPaths();
         console.log("onUpdateFinished", JSON.stringify(newPaths));

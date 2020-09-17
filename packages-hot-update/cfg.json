@@ -1,16 +1,17 @@
 {
-    "version": "1.0.3",
-    "serverRootDir": "http://192.168.18.173:8081/hot",
-    "resourceRootDir": "E:\\buildProject\\helloWorld\\jsb-default",
+    "version": "1.0.7",
+    "serverRootDir": "http://192.168.85.105:8081/hot",
+    "resourceRootDir": "E:\\buildProject\\Hello\\jsb-default",
     "genManifestDir": "",
     "hotAddressArray": [
         "http://192.168.85.105",
         "http://192.168.85.105/hot",
         "http://192.168.85.105:8081/hot",
         "http://192.168.18.173",
-        "http://192.168.18.173:8081/hot"
+        "http://192.168.18.173:8081/hot",
+        "http://192.168.85.105:8081/hotUpdate"
     ],
-    "buildTime": null,
-    "genTime": null,
+    "buildTime": 1600243867706,
+    "genTime": 1600243867706,
     "genVersion": null
 }
