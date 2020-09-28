@@ -70,7 +70,7 @@ module.exports = {
                 console.log('发现新版本,请更新');
                 break;
             default:
-                console.log("checkCallBack code:", event.getEventCode());
+                console.log("checkCallBack code default :", event.getEventCode());
                 return;
         }
         this._assetsMgr.setEventCallback(null);
